@@ -1,0 +1,32 @@
+# Зависимости
+node_modules/
+
+# Переменные окружения
+.env
+.env.*
+
+# Логи
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Временные файлы
+*.tmp
+*.swp
+
+# Покрытие тестов
+coverage/
+
+# Кэш
+.cache/
