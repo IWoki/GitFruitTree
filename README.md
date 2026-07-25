@@ -59,6 +59,20 @@
 
 ---
 
+## Проверить локально, без токена и без гита
+
+Есть готовый скрипт `scripts/preview.mjs` - подделывает историю
+коммитов (в формате `{count, level}`, как реально приходит из GitHub
+API) и сразу пишет `output/preview.svg`, не трогая сеть и `src/index.json`:
+
+```
+node scripts/preview.mjs
+```
+
+После открой `output/preview.svg`.
+
+---
+
 ## Настройка у себя 
 1. Форкните репозиторий (или "Use this template", если включите его в настройках репозитория). 
 2. В Settings -> Secrets and variables -> Actions: - добавьте secret **TREE_PAT** - Personal Access Token (classic, без дополнительных scope достаточно для публичных контрибуций, нужен только сам факт аутентификации) или fine-grained токен с доступом на чтение к своему аккаунту; - добавьте variable **GH_USERNAME** - ваш логин на GitHub.

@@ -17,7 +17,7 @@ function fakeLevel() {
 
 const cache = {};
 const start = new Date(Date.now() - 400 * 86400000);
-for (let i = 0; i < 400; i++) {
+for (let i = 0; i < 365; i++) {
   const date = new Date(start.getTime() + i * 86400000).toISOString().slice(0, 10);
   const level = fakeLevel();
   cache[date] = { count: LEVELS.indexOf(level) * 3, level };
