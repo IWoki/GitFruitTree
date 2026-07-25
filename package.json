@@ -1,0 +1,12 @@
+{
+  "name": "contribution-tree",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "generate": "node src/index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
