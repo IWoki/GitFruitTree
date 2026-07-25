@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
-import { stageForLevel, levelRank, seasonForDate, SEASON_COLORS, SEASON_FILTERS, STAGE_SIZE } from "./config.js";
+import { stageForLevel, levelRank, seasonForDate, SEASON_COLORS, SEASON_FILTERS, STAGE_SIZE, STAGE_ATTACH } from "./config.js";
 import { slotForDate, positionForSlot } from "./positions.js";
+import { generateBackgroundLayer, generateGroundLayer, generateBarkLayer, sharedDefs } from "./decor.js";
 
 const ASSET_NAMES = { 1: "bud", 2: "leaf", 3: "flower", 4: "peach" };
 const PLACEHOLDER_RE = /\{\{(COLOR|PETAL|POLLEN)\}\}/;
@@ -44,8 +45,8 @@ const assets = Object.fromEntries(
 );
 
 // Deterministic PRNG seeded by slot number, so a given day's rotation /
-// mirror / size jitter is stable across every regeneration - it looks
-// random across the canopy but never "flickers" between runs.
+// mirror / size / animation timing is stable across every regeneration -
+// it looks random across the canopy but never "flickers" between runs.
 function mulberry32(seed) {
   let a = seed >>> 0;
   return function () {
@@ -56,47 +57,143 @@ function mulberry32(seed) {
   };
 }
 
-function drawSpot(slot, x, y, stage, colors, seasonFilter) {
-  if (stage === 0) return "";
-  const name = ASSET_NAMES[stage];
-  const asset = assets[name];
-  const rand = mulberry32(slot * 4001 + stage); // stage folded in so bud/leaf/etc at the same slot don't share one look across a day that changed stage over time
+// Only the leaf sways - flowers and peaches stay still, per request.
+const SWAY_DEGREES = { 2: 9 };
 
-  // Small tilt, not a full spin - a flipped-upside-down peach reads as
-  // broken rather than "natural variation", so keep rotation modest.
-  const angle = -28 + rand() * 56;
-  const mirror = rand() < 0.5 ? -1 : 1;
-  const sizeJitter = 0.82 + rand() * 0.4; // 0.82x - 1.22x
-
-  const size = STAGE_SIZE[stage] * sizeJitter;
-  const scale = size / Math.max(asset.nativeWidth, asset.nativeHeight);
-
-  let inner;
+function recolor(asset, colors) {
   if (asset.hasPlaceholder) {
-    // Exact recolor - the asset was authored with our tokens.
-    inner = asset.inner
+    return asset.inner
       .replaceAll("{{COLOR}}", colors.leaf)
       .replaceAll("{{PETAL}}", colors.petal)
       .replaceAll("{{POLLEN}}", colors.pollen);
-  } else if (seasonFilter && (stage === 2 || stage === 3)) {
-    // No tokens to recolor (e.g. a multi-color icon downloaded as-is) -
-    // approximate the season with a CSS filter over the whole icon instead.
-    // Only leaves/flowers shift with the season by design; buds and peaches
-    // stay as authored, same as the token path.
-    inner = `<g style="filter:${seasonFilter}">${asset.inner}</g>`;
-  } else {
-    inner = asset.inner;
+  }
+  return asset.inner;
+}
+
+function fallingPetal(x, y, petalColor, rand) {
+  const dur = (4.5 + rand() * 3).toFixed(2);
+  const begin = (rand() * 6).toFixed(2);
+  const driftX = (rand() * 16 - 4).toFixed(1);
+  const dropY = (70 + rand() * 40).toFixed(0);
+  const path = `M0,0 q${(driftX * 0.4).toFixed(1)},${(dropY * 0.5)} ${driftX},${dropY}`;
+  return `<g transform="translate(${x.toFixed(1)},${y.toFixed(1)})">
+<g>
+<animateMotion path="${path}" dur="${dur}s" begin="${begin}s" repeatCount="indefinite"/>
+<animate attributeName="opacity" values="1;1;0" keyTimes="0;0.6;1" dur="${dur}s" begin="${begin}s" repeatCount="indefinite"/>
+<g>
+<animateTransform attributeName="transform" type="rotate" from="0" to="180" dur="${dur}s" begin="${begin}s" repeatCount="indefinite"/>
+<g>
+<animateTransform attributeName="transform" type="scale" values="1;0.3" keyTimes="0;1" dur="${dur}s" begin="${begin}s" repeatCount="indefinite"/>
+<ellipse rx="2.4" ry="3.4" fill="${petalColor}"/>
+</g>
+</g>
+</g>
+</g>`;
+}
+
+function buildSpots(cache) {
+  const bySlot = new Map();
+  for (const [date, entry] of Object.entries(cache)) {
+    const slot = slotForDate(date);
+    const prev = bySlot.get(slot);
+    if (!prev || levelRank(entry.level) > levelRank(prev.level)) bySlot.set(slot, entry);
   }
 
-  const transform = [
-    `translate(${x.toFixed(1)},${y.toFixed(1)})`,
+  const spots = [];
+  for (const [slot, entry] of bySlot.entries()) {
+    const stage = stageForLevel(entry.level);
+    if (stage === 0) continue;
+    const anchor = positionForSlot(slot);
+    const rand = mulberry32(slot * 4001 + stage);
+
+    const angle = -28 + rand() * 56;
+    const mirror = rand() < 0.5 ? -1 : 1;
+    const sizeJitter = 0.82 + rand() * 0.4;
+    const size = STAGE_SIZE[stage] * sizeJitter;
+
+    // Small organic jitter only - the attachment point (see drawSpot)
+    // already does the work of making this look attached to the branch,
+    // so this is just a couple of px of natural variation, not a "hang".
+    const jitterX = (rand() - 0.5) * 3;
+    const jitterY = (rand() - 0.5) * 3;
+
+    spots.push({
+      slot,
+      stage,
+      x: anchor.x + jitterX,
+      y: anchor.y + jitterY,
+      radius: size / 2,
+      angle,
+      mirror,
+      size,
+      rand, // keep drawing from the same stream for animation timing below
+    });
+  }
+  return spots;
+}
+
+// Nudges apart the worst overlaps based on each spot's *actual* rendered
+// radius, so it's the big peaches/leaves that get spread out - small buds
+// barely move. Deliberately not fully overlap-free: a little overlap still
+// reads as "a full canopy" rather than evenly-spaced dots.
+function relax(spots) {
+  for (let iter = 0; iter < 3; iter++) {
+    for (let i = 0; i < spots.length; i++) {
+      for (let j = i + 1; j < spots.length; j++) {
+        const a = spots[i], b = spots[j];
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const dist = Math.hypot(dx, dy) || 0.01;
+        const minDist = (a.radius + b.radius) * 0.82;
+        if (dist < minDist) {
+          const push = (minDist - dist) / 2;
+          const ux = dx / dist, uy = dy / dist;
+          a.x -= ux * push; a.y -= uy * push;
+          b.x += ux * push; b.y += uy * push;
+        }
+      }
+    }
+  }
+}
+
+function drawSpot(spot, colors, seasonFilter) {
+  const { stage, x, y, angle, mirror, size, rand } = spot;
+  const name = ASSET_NAMES[stage];
+  const asset = assets[name];
+  const scale = size / Math.max(asset.nativeWidth, asset.nativeHeight);
+  const attach = STAGE_ATTACH[stage];
+
+  let inner = recolor(asset, colors);
+  if (!asset.hasPlaceholder && seasonFilter && seasonFilter !== "none" && (stage === 2 || stage === 3)) {
+    inner = `<g style="filter:${seasonFilter}">${inner}</g>`;
+  }
+
+  // Rotate/scale/mirror pivot on the attachment point, not the icon's
+  // center - translate the icon so that point sits at the local origin
+  // *before* anything else happens to it.
+  const innerTransform = [
     `rotate(${angle.toFixed(1)})`,
     `scale(${mirror},1)`,
     `scale(${scale.toFixed(4)})`,
-    `translate(${(-asset.nativeWidth / 2).toFixed(1)},${(-asset.nativeHeight / 2).toFixed(1)})`,
+    `translate(${(-asset.nativeWidth * attach.x).toFixed(1)},${(-asset.nativeHeight * attach.y).toFixed(1)})`,
   ].join(" ");
 
-  return `<g transform="${transform}">${inner}</g>`;
+  const swayDeg = SWAY_DEGREES[stage];
+  let sway = "";
+  if (swayDeg) {
+    const swayDur = (2.2 + rand() * 1.4).toFixed(2);
+    const swayBegin = (rand() * 2).toFixed(2);
+    sway = `<animateTransform attributeName="transform" type="rotate" values="${-swayDeg} ${x.toFixed(1)} ${y.toFixed(1)};${swayDeg} ${x.toFixed(1)} ${y.toFixed(1)};${-swayDeg} ${x.toFixed(1)} ${y.toFixed(1)}" dur="${swayDur}s" begin="${swayBegin}s" repeatCount="indefinite"/>`;
+  }
+
+  let markup = `<g>${sway}<g transform="translate(${x.toFixed(1)},${y.toFixed(1)}) ${innerTransform}">${inner}</g></g>`;
+
+  // Occasionally shed a petal from flowers - drifts down, rotates, and
+  // shrinks instead of just vanishing.
+  if (stage === 3 && rand() < 0.3) {
+    markup += fallingPetal(x, y + size * 0.3, colors.petal, rand);
+  }
+
+  return markup;
 }
 
 // cache: { [date]: { count, level } } accumulated across runs (see index.js)
@@ -105,21 +202,14 @@ export function generateSvg({ trunkSvg, cache, now = new Date() }) {
   const colors = SEASON_COLORS[season];
   const seasonFilter = SEASON_FILTERS[season];
 
-  // Collapse same-slot dates (dates exactly anchors.length apart) by keeping
-  // the greenest level seen for that slot, so repeat years reinforce a spot
-  // instead of overwriting it with a lower value.
-  const bySlot = new Map();
-  for (const [date, entry] of Object.entries(cache)) {
-    const slot = slotForDate(date);
-    const prev = bySlot.get(slot);
-    if (!prev || levelRank(entry.level) > levelRank(prev.level)) bySlot.set(slot, entry);
-  }
+  const spots = buildSpots(cache);
+  relax(spots);
 
-  let canopyMarkup = "";
-  for (const [slot, entry] of bySlot.entries()) {
-    const { x, y } = positionForSlot(slot);
-    canopyMarkup += drawSpot(slot, x, y, stageForLevel(entry.level), colors, seasonFilter);
-  }
+  const canopyMarkup = spots.map((spot) => drawSpot(spot, colors, seasonFilter)).join("");
 
-  return trunkSvg.replace("<!--CANOPY-->", canopyMarkup);
+  return trunkSvg
+    .replace("<!--BACKGROUND-->", sharedDefs() + generateBackgroundLayer())
+    .replace("<!--BARK-->", generateBarkLayer())
+    .replace("<!--CANOPY-->", canopyMarkup)
+    .replace("<!--GROUND-->", generateGroundLayer());
 }

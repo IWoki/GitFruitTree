@@ -60,3 +60,15 @@ export const SEASON_FILTERS = {
 // the random per-spot size jitter is applied (see generateSvg.js). Leaves
 // and peaches read bigger than buds/flowers by design.
 export const STAGE_SIZE = { 1: 9, 2: 18, 3: 14, 4: 21 };
+
+// Where on the icon's own viewBox (0,0 = top-left, 1,1 = bottom-right) it
+// "attaches" to the branch - rotation and the branch-point position both
+// pivot around this, not the icon's center, so it reads as hanging off a
+// twig instead of floating centered on the line. Tune per icon if yours
+// has its stem somewhere else.
+export const STAGE_ATTACH = {
+  1: { x: 0, y: 1 }, // bud - bottom-left
+  2: { x: 0, y: 1 }, // leaf - bottom-left
+  3: { x: 0.5, y: 1 }, // flower - bottom-center
+  4: { x: 0.5, y: 1 }, // peach - bottom-center
+};

@@ -48,7 +48,7 @@ EXTRA_MARGIN = 19
 # differently-shaped base and this needs adjusting.
 Y_MAX = 680
 
-MIN_DIST = 13
+MIN_DIST = 14
 
 
 def main():
