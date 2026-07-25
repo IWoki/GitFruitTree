@@ -7,6 +7,7 @@ query($login: String!, $from: DateTime!, $to: DateTime!) {
           contributionDays {
             date
             contributionCount
+            contributionLevel
           }
         }
       }
@@ -17,6 +18,12 @@ query($login: String!, $from: DateTime!, $to: DateTime!) {
 // GitHub's API caps a single window at ~1 year, so we fetch the last
 // 365 days each run. Older days already in index.json are kept as-is -
 // that's how the tree accumulates history beyond one year.
+//
+// contributionLevel is the same NONE/FIRST_QUARTILE/.../FOURTH_QUARTILE
+// value GitHub itself uses to shade a day's square - i.e. how green it
+// is *relative to your own activity*, not an absolute commit count. This
+// is what drives the growth stage; contributionCount is kept around too
+// in case you want it for something else.
 export async function fetchContributions({ login, token, days = 365 }) {
   const to = new Date();
   const from = new Date(to.getTime() - days * 86400000);
@@ -46,7 +53,7 @@ export async function fetchContributions({ login, token, days = 365 }) {
   const days_ = [];
   for (const week of weeks) {
     for (const day of week.contributionDays) {
-      days_.push({ date: day.date, count: day.contributionCount });
+      days_.push({ date: day.date, count: day.contributionCount, level: day.contributionLevel });
     }
   }
   return days_;

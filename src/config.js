@@ -3,18 +3,28 @@
 // every existing leaf position.
 export const ANCHOR_DATE = "2020-01-01T00:00:00Z";
 
-// contributionCount -> growth stage (0 nothing, 1 bud, 2 leaf, 3 flower, 4 peach)
-export function stageForCount(count) {
-  if (count <= 0) return 0;
-  if (count <= 2) return 1;
-  if (count <= 5) return 2;
-  if (count <= 9) return 3;
-  return 4;
+// GitHub's contributionLevel is how green a day's square is *relative to
+// your own activity* (the same value the calendar itself uses to shade
+// squares) - not an absolute commit count. This is what decides the stage,
+// exactly like the contribution-eating snake does it.
+const LEVEL_TO_STAGE = {
+  NONE: 0,
+  FIRST_QUARTILE: 1, // bud
+  SECOND_QUARTILE: 2, // leaf
+  THIRD_QUARTILE: 3, // flower
+  FOURTH_QUARTILE: 4, // peach
+};
+const LEVEL_RANK = Object.keys(LEVEL_TO_STAGE); // index = rank, higher = greener
+
+export function stageForLevel(level) {
+  return LEVEL_TO_STAGE[level] ?? 0;
 }
 
-// Displayed size (in trunk.svg's user units) of each stage's asset, which
-// is authored at a native 20x20 viewBox in assets/*.svg.
-export const STAGE_SIZE = { 1: 10, 2: 15, 3: 17, 4: 20 };
+// Used to resolve same-slot collisions (see generateSvg.js) - higher rank wins.
+export function levelRank(level) {
+  const i = LEVEL_RANK.indexOf(level);
+  return i === -1 ? 0 : i;
+}
 
 // Season is based on the CURRENT calendar date (when the SVG is generated),
 // not on the date the commit was made. Northern hemisphere by default -
@@ -33,3 +43,20 @@ export const SEASON_COLORS = {
   autumn: { leaf: "#EF9F27", petal: "#F0997B", pollen: "#BA7517" },
   winter: { leaf: "#B5D4F4", petal: "#F4C0D1", pollen: "#E6F1FB" },
 };
+
+// Fallback for icons that don't use the {{COLOR}}/{{PETAL}}/{{POLLEN}}
+// tokens (e.g. a multi-color icon dropped in as-is) - approximates the
+// season as a CSS filter over the whole icon instead of an exact recolor.
+// Tuned assuming the icon's authored colors are natural spring/summer
+// greens - adjust if yours lean toward a different baseline hue.
+export const SEASON_FILTERS = {
+  spring: "none",
+  summer: "saturate(1.25) brightness(0.88)",
+  autumn: "hue-rotate(-70deg) saturate(1.35)",
+  winter: "saturate(0.3) brightness(1.3) hue-rotate(150deg)",
+};
+
+// Displayed size (in trunk.svg's user units) of each stage's asset before
+// the random per-spot size jitter is applied (see generateSvg.js). Leaves
+// and peaches read bigger than buds/flowers by design.
+export const STAGE_SIZE = { 1: 9, 2: 18, 3: 14, 4: 21 };
