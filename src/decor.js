@@ -1,28 +1,40 @@
 import { existsSync, readFileSync } from "node:fs";
 
+const PLACEHOLDER_RE = /\{\{(COLOR|PETAL|POLLEN)\}\}/;
+
 // Optional user-supplied layers. Neither is required - if the file isn't
 // there, that layer is just skipped (empty string), no error. Both are
 // expected to be authored directly in trunk.svg's own coordinate space
 // (viewBox 0 0 720 736) - dropped in as-is, no scaling or repositioning.
-function loadOptional(relPath) {
+//
+// If the file uses {{COLOR}}/{{PETAL}}/{{POLLEN}} (same tokens as
+// assets/leaf.svg etc, see generateSvg.js) it gets recolored by season too
+// - same mechanism, so e.g. grass can shift with the seasons if you want
+// that. No tokens = drawn as authored, season has no effect on it.
+function loadOptional(relPath, colors) {
   const url = new URL(`../assets/${relPath}`, import.meta.url);
   if (!existsSync(url)) return "";
   const raw = readFileSync(url, "utf8");
   const innerMatch = raw.match(/<svg[^>]*>([\s\S]*)<\/svg>/);
-  return innerMatch ? innerMatch[1] : raw;
+  const inner = innerMatch ? innerMatch[1] : raw;
+  if (!colors || !PLACEHOLDER_RE.test(raw)) return inner;
+  return inner
+    .replaceAll("{{COLOR}}", colors.leaf)
+    .replaceAll("{{PETAL}}", colors.petal)
+    .replaceAll("{{POLLEN}}", colors.pollen);
 }
 
 // Behind the trunk (drawn first). Add assets/fone-leafs.svg for a "leaves
 // visible through the gaps" backdrop - purely decorative, your art, your
 // call on what it looks like.
-export function generateBackgroundLayer() {
-  return loadOptional("fone-leafs.svg");
+export function generateBackgroundLayer(colors) {
+  return loadOptional("fone-leafs.svg", colors);
 }
 
 // On top of the trunk (drawn last, after the canopy). Add assets/ground.svg
 // for grass/dirt at the base.
-export function generateGroundLayer() {
-  return loadOptional("ground.svg");
+export function generateGroundLayer(colors) {
+  return loadOptional("ground.svg", colors);
 }
 
 // A textured copy of the trunk silhouette, composited to only show inside

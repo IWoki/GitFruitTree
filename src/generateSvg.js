@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { stageForLevel, levelRank, seasonForDate, SEASON_COLORS, SEASON_FILTERS, STAGE_SIZE, STAGE_ATTACH } from "./config.js";
+import { stageForLevel, levelRank, seasonForDate, SEASON_COLORS, FLOWER_COLOR, SEASON_FILTERS, STAGE_SIZE, STAGE_ATTACH } from "./config.js";
 import { slotForDate, positionForSlot } from "./positions.js";
 import { generateBackgroundLayer, generateGroundLayer, generateBarkLayer, sharedDefs } from "./decor.js";
 
@@ -60,14 +60,15 @@ function mulberry32(seed) {
 // Only the leaf sways - flowers and peaches stay still, per request.
 const SWAY_DEGREES = { 2: 9 };
 
-function recolor(asset, colors) {
-  if (asset.hasPlaceholder) {
-    return asset.inner
-      .replaceAll("{{COLOR}}", colors.leaf)
-      .replaceAll("{{PETAL}}", colors.petal)
-      .replaceAll("{{POLLEN}}", colors.pollen);
-  }
-  return asset.inner;
+function recolor(asset, stage, colors) {
+  if (!asset.hasPlaceholder) return asset.inner;
+  // Flowers don't shift with the season - always FLOWER_COLOR, regardless
+  // of what colors (this render's season palette) says.
+  const petalSource = stage === 3 ? FLOWER_COLOR : colors;
+  return asset.inner
+    .replaceAll("{{COLOR}}", colors.leaf)
+    .replaceAll("{{PETAL}}", petalSource.petal)
+    .replaceAll("{{POLLEN}}", petalSource.pollen);
 }
 
 function fallingPetal(x, y, petalColor, rand) {
@@ -117,11 +118,25 @@ function buildSpots(cache) {
     const jitterX = (rand() - 0.5) * 3;
     const jitterY = (rand() - 0.5) * 3;
 
+    // x/y is the branch attachment point, not the icon's visual center -
+    // relax() needs to know where the icon's mass actually sits (offset
+    // by attach point, then mirrored and rotated the same as drawSpot
+    // does) or it collides on the wrong point entirely.
+    const attach = STAGE_ATTACH[stage];
+    const dx0 = size * (0.5 - attach.x);
+    const dy0 = size * (0.5 - attach.y);
+    const mx = mirror * dx0;
+    const rad = (angle * Math.PI) / 180;
+    const centerDX = mx * Math.cos(rad) - dy0 * Math.sin(rad);
+    const centerDY = mx * Math.sin(rad) + dy0 * Math.cos(rad);
+
     spots.push({
       slot,
       stage,
       x: anchor.x + jitterX,
       y: anchor.y + jitterY,
+      centerDX,
+      centerDY,
       radius: size / 2,
       angle,
       mirror,
@@ -133,20 +148,26 @@ function buildSpots(cache) {
 }
 
 // Nudges apart the worst overlaps based on each spot's *actual* rendered
-// radius, so it's the big peaches/leaves that get spread out - small buds
-// barely move. Deliberately not fully overlap-free: a little overlap still
-// reads as "a full canopy" rather than evenly-spaced dots.
+// footprint (its visual center, not the branch attach point - see
+// centerDX/centerDY above) and radius, so it's the big peaches/leaves
+// that get spread out - small buds barely move. Deliberately not fully
+// overlap-free: a little overlap still reads as "a full canopy" rather
+// than evenly-spaced dots.
 function relax(spots) {
   for (let iter = 0; iter < 3; iter++) {
     for (let i = 0; i < spots.length; i++) {
       for (let j = i + 1; j < spots.length; j++) {
         const a = spots[i], b = spots[j];
-        const dx = b.x - a.x, dy = b.y - a.y;
+        const ax = a.x + a.centerDX, ay = a.y + a.centerDY;
+        const bx = b.x + b.centerDX, by = b.y + b.centerDY;
+        const dx = bx - ax, dy = by - ay;
         const dist = Math.hypot(dx, dy) || 0.01;
         const minDist = (a.radius + b.radius) * 0.82;
         if (dist < minDist) {
           const push = (minDist - dist) / 2;
           const ux = dx / dist, uy = dy / dist;
+          // Push the anchor point by the same delta as the visual center -
+          // it's a rigid translation, so the offset between them is unaffected.
           a.x -= ux * push; a.y -= uy * push;
           b.x += ux * push; b.y += uy * push;
         }
@@ -162,8 +183,10 @@ function drawSpot(spot, colors, seasonFilter) {
   const scale = size / Math.max(asset.nativeWidth, asset.nativeHeight);
   const attach = STAGE_ATTACH[stage];
 
-  let inner = recolor(asset, colors);
-  if (!asset.hasPlaceholder && seasonFilter && seasonFilter !== "none" && (stage === 2 || stage === 3)) {
+  let inner = recolor(asset, stage, colors);
+  // Fallback CSS filter for icons without placeholders only applies to
+  // leaves - flowers stay their authored/fixed color regardless of season.
+  if (!asset.hasPlaceholder && seasonFilter && seasonFilter !== "none" && stage === 2) {
     inner = `<g style="filter:${seasonFilter}">${inner}</g>`;
   }
 
@@ -190,7 +213,7 @@ function drawSpot(spot, colors, seasonFilter) {
   // Occasionally shed a petal from flowers - drifts down, rotates, and
   // shrinks instead of just vanishing.
   if (stage === 3 && rand() < 0.3) {
-    markup += fallingPetal(x, y + size * 0.3, colors.petal, rand);
+    markup += fallingPetal(x, y + size * 0.3, FLOWER_COLOR.petal, rand);
   }
 
   return markup;
@@ -208,8 +231,8 @@ export function generateSvg({ trunkSvg, cache, now = new Date() }) {
   const canopyMarkup = spots.map((spot) => drawSpot(spot, colors, seasonFilter)).join("");
 
   return trunkSvg
-    .replace("<!--BACKGROUND-->", sharedDefs() + generateBackgroundLayer())
+    .replace("<!--BACKGROUND-->", sharedDefs() + generateBackgroundLayer(colors))
     .replace("<!--BARK-->", generateBarkLayer())
     .replace("<!--CANOPY-->", canopyMarkup)
-    .replace("<!--GROUND-->", generateGroundLayer());
+    .replace("<!--GROUND-->", generateGroundLayer(colors));
 }

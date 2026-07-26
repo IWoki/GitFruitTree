@@ -44,6 +44,10 @@ export const SEASON_COLORS = {
   winter: { leaf: "#B5D4F4", petal: "#F4C0D1", pollen: "#E6F1FB" },
 };
 
+// Flowers don't shift with the season, unlike leaves - always this color,
+// same for the falling-petal decoration.
+export const FLOWER_COLOR = { petal: "#DA5A69", pollen: "#FAC775" };
+
 // Fallback for icons that don't use the {{COLOR}}/{{PETAL}}/{{POLLEN}}
 // tokens (e.g. a multi-color icon dropped in as-is) - approximates the
 // season as a CSS filter over the whole icon instead of an exact recolor.
