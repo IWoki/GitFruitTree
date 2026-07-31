@@ -219,11 +219,44 @@ function drawSpot(spot, colors, seasonFilter) {
   return markup;
 }
 
+// Static labels, live counts - one line under the trunk showing how many
+// days are at each stage right now. Positioned from the trunk's own
+// viewBox, not fixed coordinates - so it lands below the art (in the
+// margin extract-anchors.py's canvas setup leaves for it) regardless of
+// how big or small assets/trunk.svg's canvas is.
+function statsMarkup(spots, viewBox) {
+  const counts = { 1: 0, 2: 0, 3: 0, 4: 0 };
+  for (const spot of spots) counts[spot.stage]++;
+
+  const items = [
+    { emoji: "🌱", n: counts[1] },
+    { emoji: "🍃", n: counts[2] },
+    { emoji: "🌸", n: counts[3] },
+    { emoji: "🍑", n: counts[4] },
+  ];
+
+  const y = viewBox.height - viewBox.height * 0.025;
+  const fontSize = Math.max(16, viewBox.width * 0.032);
+  return items
+    .map((it, i) => {
+      const x = viewBox.width * ((i + 0.5) / items.length);
+      return `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" font-family="sans-serif" font-size="${fontSize.toFixed(1)}" text-anchor="middle" fill="#3a3a3a">${it.emoji} ${it.n}</text>`;
+    })
+    .join("");
+}
+
+function readViewBox(trunkSvg) {
+  const m = trunkSvg.match(/viewBox="[\s]*[\d.\-]+[\s,]+[\d.\-]+[\s,]+([\d.\-]+)[\s,]+([\d.\-]+)/);
+  if (!m) throw new Error("trunk.svg: missing viewBox attribute");
+  return { width: parseFloat(m[1]), height: parseFloat(m[2]) };
+}
+
 // cache: { [date]: { count, level } } accumulated across runs (see index.js)
 export function generateSvg({ trunkSvg, cache, now = new Date() }) {
   const season = seasonForDate(now);
   const colors = SEASON_COLORS[season];
   const seasonFilter = SEASON_FILTERS[season];
+  const viewBox = readViewBox(trunkSvg);
 
   const spots = buildSpots(cache);
   relax(spots);
@@ -231,8 +264,9 @@ export function generateSvg({ trunkSvg, cache, now = new Date() }) {
   const canopyMarkup = spots.map((spot) => drawSpot(spot, colors, seasonFilter)).join("");
 
   return trunkSvg
-    .replace("<!--BACKGROUND-->", sharedDefs() + generateBackgroundLayer(colors))
+    .replace("<!--BACKGROUND-->", sharedDefs() + generateBackgroundLayer(colors, seasonFilter, viewBox))
     .replace("<!--BARK-->", generateBarkLayer())
     .replace("<!--CANOPY-->", canopyMarkup)
-    .replace("<!--GROUND-->", generateGroundLayer(colors));
+    .replace("<!--GROUND-->", generateGroundLayer(colors, seasonFilter, viewBox))
+    .replace("<!--STATS-->", statsMarkup(spots, viewBox));
 }

@@ -57,7 +57,7 @@ export const SEASON_FILTERS = {
   spring: "none",
   summer: "saturate(1.25) brightness(0.88)",
   autumn: "hue-rotate(-70deg) saturate(1.35)",
-  winter: "saturate(0.3) brightness(1.3) hue-rotate(150deg)",
+  winter: "saturate(0.35) brightness(1.3) hue-rotate(88deg)",
 };
 
 // Displayed size (in trunk.svg's user units) of each stage's asset before
@@ -74,5 +74,5 @@ export const STAGE_ATTACH = {
   1: { x: 0, y: 1 }, // bud - bottom-left
   2: { x: 0, y: 1 }, // leaf - bottom-left
   3: { x: 0.5, y: 1 }, // flower - bottom-center
-  4: { x: 0.5, y: 1 }, // peach - bottom-center
+  4: { x: 0, y: 0 }, // peach - top-left
 };

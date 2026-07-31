@@ -1,141 +1,146 @@
 # 🌳 GitFruitTree
 
-> **Превратите свою историю коммитов в живое дерево.**
+**English | [Русский](README.ru.md)**
 
-Каждый ваш коммит становится частью дерева, которое растёт вместе с вашей активностью на GitHub.
+> **Turn your commit history into a living tree.**
 
-В отличие от обычного Contribution Graph, здесь **каждый день навсегда получает своё место в кроне**. Листья не перемещаются, история не перерисовывается - дерево постепенно заполняется и становится уникальным отражением вашей активности.
+Every commit becomes part of a tree that grows along with your GitHub activity.
+
+Unlike a regular contribution graph, here **every day permanently gets its own spot in the canopy**. Leaves don't move around, history doesn't get redrawn - the tree just keeps filling in and becomes a unique reflection of your activity.
 
 ![preview](output/preview.svg)
 
 ---
 
-## ✨ Как это работает
+## ✨ How it works
 
-Каждая дата соответствует собственной точке в кроне.
+Every date maps to its own point in the canopy.
 
-Если в этот день не было коммитов - место остаётся пустым.
+If there were no commits that day, the spot stays empty.
 
-Стадия зависит не от абсолютного числа коммитов, а от `contributionLevel` - того же значения, по которому GitHub красит квадратик в самом календаре (относительно вашей собственной активности). Так же считает "зелёность" бот-змейка, поедающий контрибуции.
+The stage depends not on the raw commit count but on `contributionLevel` - the same value GitHub uses to shade a square on the calendar itself (relative to your own activity). It's the same signal the contribution-eating snake bot uses for "how green" a day is.
 
-| contributionLevel | Стадия |
+| contributionLevel | Stage |
 |---:|:-------|
 | NONE | — |
-| FIRST_QUARTILE | 🌱 Почка |
-| SECOND_QUARTILE | 🍃 Лист |
-| THIRD_QUARTILE | 🌸 Цветок |
-| FOURTH_QUARTILE | 🍑 Персик |
+| FIRST_QUARTILE | 🌱 Bud |
+| SECOND_QUARTILE | 🍃 Leaf |
+| THIRD_QUARTILE | 🌸 Flower |
+| FOURTH_QUARTILE | 🍑 Peach |
 
-> Маппинг полностью настраивается (`LEVEL_TO_STAGE` в `src/config.js`).
-
----
-
-## 🍃 Сезоны
-
-Цвет дерева зависит **не от даты коммита**, а от **текущего времени года**.
-
-Это означает, что всё дерево меняет окраску одновременно.
-
-- 🌸 Весна
-- 🌿 Лето
-- 🍂 Осень
-- ❄️ Зима
-
-Таким образом дерево выглядит живым!
+> The mapping is fully configurable (`LEVEL_TO_STAGE` in `src/config.js`).
 
 ---
 
-## 🌿 Как выглядит крона
+## 🍃 Seasons
 
-- **Наложения.** У каждого выросшего элемента известен реальный радиус (с учётом случайного размера), и перед отрисовкой проходит несколько проходов "расталкивания" - крупные персики и листья слегка раздвигаются, если пересекаются, мелкие почки почти не двигаются. Небольшое наложение остаётся специально - это всё ещё полная крона, а не набор ровно расставленных точек.
-- **Точка крепления.** Вращение, масштаб и отражение каждого элемента считаются не от центра иконки, а от точки крепления (`STAGE_ATTACH` в `src/config.js`) - именно она садится на ветку.
-- **Покачивание.** Только лист - вращается вокруг точки крепления. Цветы и персики специально не качаются. Это SMIL-анимация, не видна в статичном PNG или в большинстве превьюшек файлов - открывайте `output/preview.svg` прямо в браузере.
-- **Падающие лепестки.** У части цветов (~30%, детерминированно по дате) с шансом отрывается лепесток и медленно падает вбок, сжимаясь, а не пропадает резко.
-- **Кора.** Лёгкая текстура поверх ствола через SVG-фильтр, не привязана к данным. Если ваш SVG-просмотрщик не поддерживает фильтры/blend-mode - просто не увидите эффекта, ошибки в этом нет.
-- **Фон и трава - ваши собственные файлы.** `assets/fone-leafs.svg` (если добавите) рисуется ЗА стволом. `assets/ground.svg` (если добавите) рисуется ПОВЕРХ ствола и кроны. Оба необязательны - нет файла, просто ничего не рисуется. Авторить в той же системе координат, что и `trunk.svg` (viewBox `0 0 720 736`), вставляется как есть. Если использовать в них те же плейсхолдеры `{{COLOR}}`/`{{PETAL}}`/`{{POLLEN}}`, что и в `assets/leaf.svg` - они тоже подхватят цвет сезона.
+The tree's color depends **not on the commit date**, but on the **current time of year**.
 
----
+That means the whole tree changes color at once.
 
-## 🌱 Главное отличие
+- 🌸 Spring
+- 🌿 Summer
+- 🍂 Autumn
+- ❄️ Winter
 
-В большинстве подобных проектов элементы постоянно "ездят" вместе с окном последних недель GitHub.
-
-**Contribution Tree работает иначе.**
-
-Каждый день получает постоянную позицию в кроне (`src/positions.js`), которая никогда не меняется.
-
-История сохраняется в `src/index.json`, поэтому после каждого запуска дерево только растёт.
-
-Новые дни появляются на кроне, старые остаются на своих местах навсегда.
+That's what makes the tree feel alive!
 
 ---
 
-## Проверить локально, без токена и без гита
+## 🌿 How the canopy looks
 
-Есть готовый скрипт `scripts/preview.mjs` - подделывает историю
-коммитов (в формате `{count, level}`, как реально приходит из GitHub
-API) и сразу пишет `output/preview.svg`, не трогая сеть и `src/index.json`:
+- **Overlaps.** Every grown element has a known real radius (accounting for its random size), and before drawing, the layout runs a few "relaxation" passes - large peaches and leaves nudge apart a bit if they overlap, small buds barely move. A little overlap is left on purpose - it should still read as a full canopy, not a set of evenly spaced dots.
+- **Attachment point.** Each element's rotation, scale, and mirroring pivot on its attachment point (`STAGE_ATTACH` in `src/config.js`), not the icon's center - that's the point that actually sits on the branch.
+- **Sway.** Only the leaf sways - rotating around its attachment point. Flowers and peaches are intentionally still. This is a SMIL animation - won't show up in a static PNG or most file previewers, open `output/preview.svg` directly in a browser.
+- **Falling petals.** Some flowers (~30%, deterministic per date) occasionally shed a petal that drifts sideways and shrinks as it falls, instead of just disappearing.
+- **Bark.** A light texture over the trunk via an SVG filter, unrelated to the data. If your SVG viewer doesn't support filters/blend-mode, you just won't see the effect - that's not a bug.
+- **Background and grass - your own files.** `assets/fone-leafs.svg` (if you add it) is drawn BEHIND the trunk. `assets/ground.svg` (if you add it) is drawn ON TOP of the trunk and canopy. Both are optional - no file, nothing gets drawn, no errors. Author them in the same coordinate space as `trunk.svg` (viewBox `0 0 720 736`) - they're dropped in as-is. Use the same `{{COLOR}}`/`{{PETAL}}`/`{{POLLEN}}` placeholders as `assets/leaf.svg` and they'll pick up the season color too.
+- **Stats row.** A live line showing how many days are at each stage (🌱 bud / 🍃 leaf / 🌸 flower / 🍑 peach) - recalculated on every generation, not stored separately.
+
+---
+
+## 🌱 Key difference
+
+In most similar projects, elements keep "riding along" with GitHub's rolling window of recent weeks.
+
+**Contribution Tree works differently.**
+
+Every day gets a permanent position in the canopy (`src/positions.js`) that never changes.
+
+History is kept in `src/index.json`, so the tree only ever grows with each run.
+
+New days appear on the canopy, old ones stay put forever.
+
+---
+
+## Check it locally, no token, no git needed
+
+There's a ready-made script, `scripts/preview.mjs` - it fakes a commit
+history (in the exact `{count, level}` shape that really comes from the
+GitHub API) and writes `output/preview.svg` right away, without touching
+the network or `src/index.json`:
 
 ```
 node scripts/preview.mjs
 ```
 
-После открой `output/preview.svg`.
+Then open `output/preview.svg`.
 
-Чтобы проверить сезонность (в том числе на своих SVG, без правки кода) -
-передайте сезон или дату аргументом:
+To test seasonality (including on your own SVGs, without touching any
+code) - pass a season or a date as an argument:
 
 ```
 node scripts/preview.mjs winter
 node scripts/preview.mjs 2026-12-25
 ```
 
-Полезно после смены `assets/leaf.svg`/`flower.svg` или добавления
-`ground.svg` с плейсхолдерами - сразу видно, как каждый сезон красит
-именно ваши файлы, ничего в коде менять не нужно.
+Handy after changing `assets/leaf.svg`/`flower.svg` or adding a
+`ground.svg` with placeholders - you immediately see how each season
+colors your specific files, no code changes needed.
 
 ---
 
-## Настройка у себя 
-1. Форкните репозиторий (или "Use this template", если включите его в настройках репозитория). 
-2. В Settings -> Secrets and variables -> Actions: - добавьте secret **TREE_PAT** - Personal Access Token (classic, без дополнительных scope достаточно для публичных контрибуций, нужен только сам факт аутентификации) или fine-grained токен с доступом на чтение к своему аккаунту; - добавьте variable **GH_USERNAME** - ваш логин на GitHub.
-3. Запустите workflow вручную (Actions -> Generate contribution tree -> Run workflow) или дождитесь дневного крона.
-4. Скрипт закоммитит output/tree.svg и обновлённый src/index.json обратно в репозиторий.
+## Set up your own
 
-**Готово!**
+1. Fork the repo (or use "Use this template" if you enable it in the repo settings).
+2. In Settings -> Secrets and variables -> Actions: add secret **TREE_PAT** - a Personal Access Token (classic, no extra scopes needed for public contributions, it just needs to authenticate) or a fine-grained token with read access to your account; add variable **GH_USERNAME** - your GitHub login.
+3. Run the workflow manually (Actions -> Generate contribution tree -> Run workflow) or wait for the daily cron.
+4. The script commits `output/tree.svg` and the updated `src/index.json` back to the repo.
 
-Workflow автоматически:
+**Done!**
 
-- получает вашу историю коммитов;
-- обновляет накопленную историю (`src/index.json`);
-- генерирует новый SVG;
-- коммитит изменения обратно в репозиторий.
+The workflow automatically:
+
+- fetches your commit history;
+- updates the accumulated history (`src/index.json`);
+- generates a new SVG;
+- commits the changes back to the repo.
 
 ---
 
-# 📌 Добавить в профиль GitHub
+# 📌 Add it to your GitHub profile
 
-Через Raw GitHub:
+Via raw GitHub:
 
 ```md
 ![Contribution Tree](https://raw.githubusercontent.com/<username>/<repo>/main/output/tree.svg)
 ```
 
-или через jsDelivr:
+or via jsDelivr:
 
 ```md
 ![Contribution Tree](https://cdn.jsdelivr.net/gh/<username>/<repo>/output/tree.svg)
 ```
 
-> jsDelivr использует кэш, поэтому обновления могут появляться с небольшой задержкой.
+> jsDelivr caches, so updates may show up with a short delay.
 
 ---
 
-# ⚙️ Настройка
+# ⚙️ Configuration
 
-Практически всё можно изменить под себя.
+Pretty much everything can be customized.
 
-## 🌱 Стадии роста
+## 🌱 Growth stages
 
 `src/config.js`
 
@@ -143,60 +148,79 @@ Workflow автоматически:
 LEVEL_TO_STAGE
 ```
 
-Маппинг `contributionLevel` (NONE/FIRST_QUARTILE/.../FOURTH_QUARTILE) на:
+Maps `contributionLevel` (NONE/FIRST_QUARTILE/.../FOURTH_QUARTILE) to:
 
-- 🌱 Почка
-- 🍃 Лист
-- 🌸 Цветок
-- 🍑 Персик
+- 🌱 Bud
+- 🍃 Leaf
+- 🌸 Flower
+- 🍑 Peach
 
-Размер каждой стадии на кроне (до случайного разброса) - `STAGE_SIZE`
-там же. Точка крепления к ветке (не центр иконки) - `STAGE_ATTACH`.
+Each stage's size on the canopy (before random jitter) - `STAGE_SIZE`
+in the same file. The branch attachment point (not the icon's center) -
+`STAGE_ATTACH`.
 
 ---
 
-## 🎨 Цвета сезонов
+## 🎨 Season colors
 
-Там же:
+Same file:
 
 ```js
 SEASON_COLORS
 ```
 
-Можно полностью заменить палитру. Действует на ствол/лист (`{{COLOR}}`)
-и на фон/траву, если используете там те же плейсхолдеры. Цветок -
-специально исключение: его цвет фиксирован (`FLOWER_COLOR`, там же) и
-не зависит от сезона, как и цвет падающих лепестков.
+Feel free to replace the whole palette. Applies to the trunk/leaf
+(`{{COLOR}}`) and to the background/grass if you use the same
+placeholders there. The flower is a deliberate exception: its color is
+fixed (`FLOWER_COLOR`, same file) and doesn't depend on the season,
+same for the falling petals' color.
 
 ---
 
-## 🌳 Форма дерева
+## 🌳 Tree shape
 
-Позиции роста (`src/anchors.json`) привязаны к конкретному рисунку
-`assets/trunk.svg` - это набор точек, реально лежащих на тонких ветках
-(не на самом стволе), чтобы листья не висели в пустоте, не росли на
-голом стволе и крона не "обрезалась". Если подставите новый рисунок
-ствола, точки нужно пересчитать:
+Growth positions (`src/anchors.json`) are tied to the specific artwork
+in `assets/trunk.svg` - a set of points that actually sit on thin
+branches (not on the trunk itself), so leaves don't float in empty
+space, don't grow on bare trunk, and the canopy doesn't get "cut off".
+If you swap in new trunk artwork (say, a fresh Illustrator export - see
+below), the points need recalculating:
 
 ```
 pip install cairosvg numpy pillow scipy
-python3 scripts/extract-anchors.py
+python3 scripts/setup-trunk.py
 ```
 
-Скрипт через distance transform отличает тонкие ветки от толстого
-ствола (включая место, где ветки расходятся от ствола, а не только его
-нижнюю часть) и жёстко отрезает всё ниже кроны (поверхностные корни
-такие же тонкие, как ветки, поэтому их не отличить только по толщине).
-Настройки - `TRUNK_CORE_RADIUS`, `EXTRA_MARGIN`, `Y_MAX` в самом
-скрипте.
+One command does everything: strips hidden layers (Illustrator and
+similar tools save every layer into the SVG, just marking hidden ones
+`display:none` - without cleanup, the canopy ends up with stuff that
+was supposed to be hidden mixed in), adds the marker comments the
+canopy/background/grass/stats get inserted at, extends the canvas to
+leave room for the stats row at the bottom, and recalculates growth
+points via a distance transform (tells thin branches apart from the
+thick trunk, including where branches fork off it rather than just its
+lower section, plus hard-cuts anything below the canopy - surface roots
+are just as thin as branches).
+
+Safe to re-run - if the markers are already there, it just recalculates
+the points, nothing gets broken. Settings - `TRUNK_CORE_RADIUS`,
+`EXTRA_MARGIN`, `Y_MAX_FRACTION` in `scripts/extract-anchors.py`.
+
+Same idea for `assets/ground.svg`/`assets/fone-leafs.svg` if you're
+exporting them from the same multi-layer file - they don't have their
+own markers, so a single cleanup is enough:
+
+```
+python3 scripts/clean_layers.py raw-export.svg assets/ground.svg
+```
 
 ---
 
-## 🌍 Южное полушарие
+## 🌍 Southern hemisphere
 
-По умолчанию времена года рассчитаны для северного полушария.
+By default, seasons are calculated for the northern hemisphere.
 
-Чтобы поменять их местами, достаточно изменить функцию:
+To swap them, just edit the function:
 
 ```js
 seasonForDate()
@@ -204,69 +228,68 @@ seasonForDate()
 
 ---
 
-# 📁 Структура проекта
+# 📁 Project structure
 
 ```text
 .
 ├── assets/
-│   ├── trunk.svg                # Ствол и ветки
-│   ├── bud.svg                  # Стадия 1 - почка
-│   ├── leaf.svg                 # Стадия 2 - лист ({{COLOR}})
-│   ├── flower.svg               # Стадия 3 - цветок ({{PETAL}}/{{POLLEN}})
-│   ├── peach.svg                # Стадия 4 - персик
-│   ├── fone-leafs.svg           # (опционально) фон ЗА стволом
-│   └── ground.svg               # (опционально) трава/земля ПОВЕРХ ствола
+│   ├── trunk.svg                # Trunk and branches
+│   ├── bud.svg                  # Stage 1 - bud
+│   ├── leaf.svg                 # Stage 2 - leaf ({{COLOR}})
+│   ├── flower.svg               # Stage 3 - flower ({{PETAL}}/{{POLLEN}})
+│   ├── peach.svg                # Stage 4 - peach
+│   ├── fone-leafs.svg           # (optional) background BEHIND the trunk
+│   └── ground.svg               # (optional) grass/dirt ON TOP of the trunk
 │
 ├── output/
-│   └── tree.svg                 # Сгенерированное дерево
+│   └── tree.svg                 # Generated tree
 │
 ├── scripts/
-│   ├── extract-anchors.py       # Пересчёт точек роста под новый trunk.svg
-│   └── preview.mjs              # Локальный рендер без токена и без сети
+│   ├── setup-trunk.py           # One command: clean + markers + growth points
+│   ├── extract-anchors.py       # (called from setup-trunk.py) recompute points
+│   ├── clean_layers.py          # Strips hidden layers from an Illustrator export
+│   └── preview.mjs              # Local render, no token, no network
 │
 ├── src/
-│   ├── config.js                # Стадии, размеры, точки крепления, цвета сезонов
-│   ├── positions.js             # Постоянные позиции дней
-│   ├── anchors.json             # Точки на ветках, куда садится рост
-│   ├── decor.js                 # Фон/трава (опционально) + текстура коры
-│   ├── fetchContributions.js    # GraphQL-запрос к GitHub
-│   ├── generateSvg.js           # Генерация SVG
-│   ├── index.js                 # Основной пайплайн
-│   └── index.json               # Накопленная история
+│   ├── config.js                # Stages, sizes, attachment points, season colors
+│   ├── positions.js             # Permanent day positions
+│   ├── anchors.json             # Points on branches where growth can land
+│   ├── decor.js                 # Optional background/grass + bark texture
+│   ├── fetchContributions.js    # GraphQL query to GitHub
+│   ├── generateSvg.js           # SVG generation
+│   ├── index.js                 # Main pipeline
+│   └── index.json               # Accumulated history
 │
 └── .github/
     └── workflows/
-        └── generate.yml         # Ежедневная генерация
+        └── generate.yml         # Daily generation
 ```
 
 ---
 
-# 🧠 Как это работает внутри
+# 🧠 How it works internally
 
-Каждый запуск выполняет четыре простых шага:
+Every run does four simple steps:
 
 ```text
 GitHub GraphQL API
         |
         V
-Получение новых коммитов
+Fetch new commits
         |
         V
-Обновление index.json
+Update index.json
         |
         V
-Определение стадии роста
+Determine growth stage
         |
         V
-Генерация tree.svg
+Generate tree.svg
 ```
 ---
 
-# 💡 Почему SVG?
+# 🤝 Contributions welcome
 
-SVG:
-
-- идеально выглядит на Retina-дисплеях;
-- масштабируется без потери качества;
-- весит совсем немного;
-- отлично отображается в GitHub README.
+This is an open pet project, and I'm happy to take help of any kind -
+ideas, bug reports, and especially new assets (your own trunk art,
+growth-stage art, background, grass). PRs and issues welcome.
