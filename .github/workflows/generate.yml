@@ -1,0 +1,38 @@
+name: Generate contribution tree
+
+on:
+  schedule:
+    - cron: "17 3 * * *" # once a day, off the hour to avoid GitHub's load spike
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths:
+      - assets/trunk.svg
+      - src/**
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Generate tree
+        env:
+          GH_USERNAME: ${{ vars.GH_USERNAME }}
+          GH_TOKEN: ${{ secrets.TREE_PAT }}
+        run: node src/index.js
+
+      - name: Commit result
+        run: |
+          git config user.name "contribution-tree-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add output/tree.svg src/index.json
+          git diff --cached --quiet || git commit -m "chore: grow the tree"
+          git push
