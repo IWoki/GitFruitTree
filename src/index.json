@@ -1460,7 +1460,11 @@
     "level": "NONE"
   },
   "2026-07-31": {
-    "count": 3,
-    "level": "FIRST_QUARTILE"
+    "count": 5,
+    "level": "SECOND_QUARTILE"
+  },
+  "2026-08-01": {
+    "count": 0,
+    "level": "NONE"
   }
 }
