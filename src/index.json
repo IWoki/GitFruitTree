@@ -1888,8 +1888,8 @@
     "level": "NONE"
   },
   "2026-11-15": {
-    "count": 0,
-    "level": "NONE"
+    "count": 1,
+    "level": "FIRST_QUARTILE"
   },
   "2026-11-16": {
     "count": 0,
@@ -1930,5 +1930,9 @@
   "2026-11-25": {
     "count": 0,
     "level": "NONE"
+  },
+  "2026-11-26": {
+    "count": 1,
+    "level": "FIRST_QUARTILE"
   }
 }
